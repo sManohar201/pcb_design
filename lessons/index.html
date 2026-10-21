@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PCB Layout Fundamentals</title>
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .home { max-width: 1100px; margin: 0 auto; padding: 24px 24px 80px; }
+  .hero h1 { font-size: 2.3rem; margin-bottom: 10px; }
+  .hero-board { width: 100%; max-width: 1100px; border-radius: 14px; display: block; margin: 18px 0 8px; }
+  .how { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 18px 0 30px; }
+  .how > div { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; font-size: .92rem; }
+  .how b { display: block; margin-bottom: 4px; }
+  @media (max-width: 700px) { .home { padding: 16px 16px 60px; } .hero h1 { font-size: 1.7rem; } }
+</style>
+</head>
+<body>
+<div id="topbar"></div>
+<div class="home">
+  <section class="hero">
+    <div class="kicker">Interactive course · 14 lessons + final challenge</div>
+    <h1>PCB Layout Fundamentals</h1>
+    <p class="lede">Learn <b>why</b> boards are laid out the way they are, using simulations where you move parts, cut planes and reroute traces, then see the consequence. The running theme is the kind of board you want to build: a carrier board for a Jetson-class module, with switching regulators, USB/PCIe/CSI and sensitive analog circuits on the same copper.</p>
+    <svg class="hero-board" viewBox="0 0 1100 170" aria-hidden="true">
+      <rect width="1100" height="170" rx="14" fill="#0f3526"/>
+      <rect x="10" y="10" width="1080" height="150" rx="10" fill="#17583f" opacity=".55"/>
+      <g fill="none" stroke-linecap="round">
+        <path d="M120 85 C 260 30, 400 30, 520 85" stroke="#5cb8ff" stroke-width="4"/>
+        <path d="M120 85 C 260 30, 400 30, 520 85" stroke="#ff7b3a" stroke-width="1.5" stroke-dasharray="6 6" transform="translate(0 6)"/>
+        <path d="M600 60 L 980 60" stroke="#ff5d6c" stroke-width="9" opacity=".85"/>
+        <path d="M600 112 L 980 112" stroke="#5cb8ff" stroke-width="2"/><path d="M600 118 L 980 118" stroke="#5cb8ff" stroke-width="2"/>
+      </g>
+      <rect x="60" y="62" width="60" height="46" rx="6" fill="#141a17" stroke="#eef1e8"/>
+      <rect x="520" y="45" width="80" height="80" rx="6" fill="#1d2730" stroke="#eef1e8"/>
+      <text x="560" y="90" text-anchor="middle" fill="#eef1e8" font-size="13" font-weight="600">MODULE</text>
+      <rect x="980" y="40" width="60" height="90" rx="6" fill="#2a2f33" stroke="#c9d1d6"/>
+      <circle cx="300" cy="125" r="34" fill="none" stroke="#ffd166" opacity=".35"/><circle cx="300" cy="125" r="18" fill="none" stroke="#ffd166" opacity=".6"/>
+      <rect x="284" y="114" width="32" height="22" rx="4" fill="#3a1714" stroke="#ff7b6b"/>
+      <text x="300" y="129" text-anchor="middle" fill="#ffd2cb" font-size="10" font-weight="700">BUCK</text>
+    </svg>
+  </section>
+
+  <div class="how">
+    <div><b>1 · Read the idea</b>Each section starts with a short explanation tied to your PDFs (Jones, ROHM, Sierra).</div>
+    <div><b>2 · Break it in the lab</b>Drag, slide and toggle. Meters and the <i>What happens</i> panel update live with the consequence.</div>
+    <div><b>3 · Take the rule away</b>Every lab ends with a rule of thumb, the reason behind it, and how to apply it in Altium.</div>
+    <div><b>About the models</b>The simulations use real formulas (IPC-2221, microstrip, via-loop inductance, Laplace field solves, Ott's loop radiation). They are simplified, so trust the trends and orders of magnitude, not the third digit.</div>
+  </div>
+
+  <div id="map"></div>
+
+  <div class="callout read" style="margin-top:30px"><div class="ct">Reference documents in your folder</div>
+    <p><b>PCB_Layout_Tutorial_e.pdf</b>: David L. Jones, <i>PCB Design Tutorial</i> (2004). Basics, placement, DFM. Some grounding advice is dated.<br>
+    <b>TWHB-03e.pdf</b>: ROHM, <i>DC/DC Buck Converter PCB Layout Basics</i>. Hot loops, input capacitors, feedback, AGND/PGND.<br>
+    <b>High-Speed PCB Design Guide.pdf</b>: Sierra Circuits (2020). Signal integrity, stackups, PDN target impedance, vias.</p>
+    <p class="hint" style="margin:0">For Jetson-specific numbers (impedances, length limits, via budgets per interface), use NVIDIA's Product Design Guide for your module alongside this course.</p>
+  </div>
+</div>
+<script src="assets/core.js"></script>
+<script>
+(function () {
+  const { el, LESSONS, PARTS } = PCB;
+  PCB.renderChrome({});
+  const map = document.getElementById('map');
+  const draw = () => {
+    map.innerHTML = '';
+    for (const p of Object.keys(PARTS)) {
+      map.append(el('h2', { class: 'phase-title' }, `${p} · ${PARTS[p]}`));
+      const grid = el('div', { class: 'course-grid' });
+      for (const l of LESSONS.filter(x => x.part === p)) {
+        const done = PCB.isDone(l.n);
+        const badge = l.file ? (done ? el('span', { class: 'badge done' }, '✓ done') : el('span', { class: 'badge' }, 'ready')) : el('span', { class: 'badge' }, `phase ${l.phase}`);
+        const card = el(l.file ? 'a' : 'div', { class: 'course-card' + (l.file ? '' : ' locked'), href: l.file || null },
+          badge, el('span', { class: 'num' }, l.n === 14 ? 'FINAL' : `LESSON ${l.n}`), el('span', { class: 't' }, l.t.replace('★ ', '')), el('span', { class: 'd' }, l.d || (l.phase === 2 ? 'Coming in phase 2.' : 'Coming in phase 3.')));
+        grid.append(card);
+      }
+      map.append(grid);
+    }
+  };
+  draw();
+  window.addEventListener('pcb-progress', draw);
+})();
+</script>
+</body>
+</html>

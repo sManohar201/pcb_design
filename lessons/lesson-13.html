@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DFM and Myths</title>
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .myths { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 12px; margin: 16px 0; }
+  .myth { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 14px 12px; display: flex; flex-direction: column; gap: 8px; }
+  .myth .claim { font-weight: 650; line-height: 1.4; }
+  .myth .who { font-size: .8rem; color: var(--faint); }
+  .myth .vote { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; }
+  .myth .vote button { flex: 1 1 auto; }
+  .myth .verdict { display: none; font-size: .88rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 8px; }
+  .myth.open .verdict { display: block; }
+  .myth .tag { display: inline-block; font-size: .72rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; padding: 2px 8px; border-radius: 99px; margin-bottom: 4px; }
+  .tag.true { background: var(--good-soft); color: var(--good); }
+  .tag.dep { background: var(--warn-soft); color: var(--warn); }
+  .tag.myth { background: var(--bad-soft); color: var(--bad); }
+  .myth .vote button.picked { outline: 2px solid var(--accent); }
+  .myth-score { font-weight: 650; }
+</style>
+</head>
+<body>
+<div id="topbar"></div>
+<div class="layout">
+<nav id="sidebar"></nav>
+<main><div class="content">
+
+<div class="kicker">Lesson 13 · Placement & manufacturing</div>
+<h1>DFM & "who's right?"</h1>
+<p class="lede">A layout can be electrically perfect and still come back from the factory as scrap, or cost three times the quote. <b>Design for manufacturing</b> (DFM) means knowing what your fabricator and assembler can reliably build, and what each step past that costs. The second half of this lesson settles the places where your three PDFs (and the internet) disagree.</p>
+
+<div class="learn-box">
+  <div><h4>You'll learn</h4><ul>
+    <li>Which dimensions set the fab class and the price: trace/space, drill, annular ring, aspect ratio, mask dam</li>
+    <li>When to use via-in-pad, and why it must be filled</li>
+    <li>Why thermal relief exists, and how an unbalanced pad tombstones a resistor</li>
+    <li>Which popular layout rules are physics, which are habit, and which are outdated</li>
+  </ul></div>
+  <div><h4>From your PDFs</h4>
+    <span class="src">Jones · Finishing touches, DFM, thermal relief</span>
+    <span class="src">Sierra · §4.1 aspect ratio, §7.2 pads & tombstoning</span>
+    <span class="src">Sierra · §7.4.1.5 via-in-pad</span>
+  </div>
+</div>
+
+<h2 id="fab" data-short="13.1 What the fab can build">13.1 What the fab can build, and what it costs</h2>
+<p>Every fabricator publishes a capability table. Inside the "standard" column your board is cheap and high-yield; past it, the price climbs and the yield drops; past the "advanced" column, you need a different technology (HDI with laser microvias). Sierra lists two of the hard limits: <b>aspect ratio</b> (board thickness ÷ drill) of about 10:1 for through holes and 0.75:1 for microvias, and via-in-pad that must be <b>filled and plated over</b>. Change the dimensions and see what you are buying:</p>
+<div id="lab-fab"></div>
+<div class="callout rule"><div class="ct">Rule of thumb</div>
+<p>Design to the <b>standard</b> column wherever you can, and step up only where a part forces you to (usually a fine-pitch BGA). Get your fab's capability table <i>before</i> setting rules. Jones adds: keep all vias the same size, minimise the number of drill sizes, and double-check hole sizes against the parts.</p></div>
+<div class="callout altium"><div class="ct">In Altium</div>
+<p>Enter the fab's numbers once, in <b>Design » Rules</b>: Electrical » Clearance; Routing » Width; Manufacturing » <b>Minimum Annular Ring</b>, <b>Hole Size</b>, <b>Hole To Hole Clearance</b>, <b>Minimum Solder Mask Sliver</b>, <b>Silk To Solder Mask Clearance</b>, and board-outline clearance. Then run DRC (<kbd>T</kbd> <kbd>D</kbd> <kbd>R</kbd>) early and often, not just at the end.</p></div>
+
+<h2 id="relief" data-short="13.2 Thermal relief">13.2 Thermal relief and tombstoning</h2>
+<p>Jones: if you solidly connect a pad to a large copper area, "the copper area will act as a very effective heat sink", which leads to dry joints. During reflow, the two ends of a small resistor must melt at nearly the same moment. If one pad sits on a solid plane connection and the other on a thin trace, the trace side melts first, its surface tension pulls on the part, and the part stands up on one end: a <b>tombstone</b>. Run the reflow oven:</p>
+<div id="lab-relief"></div>
+<div class="callout rule"><div class="ct">Rule of thumb</div>
+<p>Pads that get <b>soldered</b> and connect to planes or pours: thermal relief (usually 4 spokes). Make the spokes wider for high-current pads, and use solid connections only where heat removal or current demands it, with the assembler's agreement. <b>Vias</b> are never soldered, so connect them <b>directly</b> to planes. Keep the two pads of small passives thermally symmetric.</p></div>
+<div class="callout altium"><div class="ct">In Altium</div>
+<p><b>Design » Rules » Plane » Power Plane Connect Style</b> (and <b>Polygon Connect Style</b> for pours) default to relief connections for everything. Add a higher-priority rule with query <code>IsVia</code> → <b>Direct Connect</b>, and keep the relief rule (4 spokes, ~0.25&nbsp;mm conductors, ~0.25&nbsp;mm air gap) for pads.</p></div>
+
+<h2 id="myths" data-short="13.3 Who's right?">13.3 Who's right? Twelve rules, tested</h2>
+<p>Your PDFs span 16 years and different goals. Jones (2004) teaches practices that make boards that work and look professional; Sierra (2020) is about multi-gigabit signals; ROHM is about one switching regulator. Where they disagree, the earlier labs let you test the claim. For each card, decide first, then reveal:</p>
+<div id="myth-box"></div>
+
+<div class="callout read"><div class="ct">Before you send it out (Jones · Sierra checklist)</div>
+<p>☐ DRC clean with the fab's real rules. ☐ Every footprint's holes checked against the part's datasheet. ☐ Mounting holes clear of parts and copper, with room for washers. ☐ Fiducials: 3 global on the panel (or board), 2 local beside each fine-pitch part, 1.5&nbsp;mm copper dot with a 3&nbsp;mm mask opening. ☐ Panelisation (tabs or V-score) agreed with the assembler. ☐ Silkscreen off the pads; designators readable. ☐ No dead copper islands. ☐ Drill file, drill chart and fab drawing (stackup, impedance table, finish, via fill) included. ☐ Someone else has checked it.</p></div>
+
+<h2 id="quiz" data-short="Check yourself">Check yourself</h2>
+<div id="quiz-box"></div>
+<div id="lesson-tail"></div>
+
+</div></main>
+</div>
+<script src="assets/core.js"></script>
+<script src="assets/lesson-13.js"></script>
+</body>
+</html>

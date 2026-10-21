@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stackup Design</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div id="topbar"></div>
+<div class="layout">
+<nav id="sidebar"></nav>
+<main><div class="content">
+
+<div class="kicker">Lesson 2 · Foundations</div>
+<h1>Stackup design</h1>
+<p class="lede">Before placing a single part, you decide the board's <b>stackup</b>: how many copper layers, what each one does, and how far apart they are. That one decision fixes your return paths, impedances, crosstalk and much of your EMI. Lessons 1 and 3 showed why the distance to the plane matters so much. This lesson turns that into a layer plan.</p>
+
+<div class="learn-box">
+  <div><h4>You'll learn</h4><ul>
+    <li>How cores, prepregs and copper make up a stackup, and why it should be symmetric</li>
+    <li>Which layer orders work for fast signals, and which common ones don't</li>
+    <li>How trace width, dielectric height and material set impedance</li>
+    <li>When standard FR-4 stops being good enough</li>
+  </ul></div>
+  <div><h4>From your PDFs</h4>
+    <span class="src">Sierra · §4.1 Stackup design, §4.1.7 Planning</span>
+    <span class="src">Sierra · §3.3–3.5 Controlled impedance</span>
+    <span class="src">Sierra · §4.2–4.3 Materials, glass weave</span>
+    <span class="src">Jones · Multi-layer design, Basic PCB manufacture</span>
+  </div>
+</div>
+
+<h2 id="build" data-short="2.1 Build a stackup">2.1 Building a stackup</h2>
+<p>A multilayer board is a sandwich. <b>Cores</b> are rigid, fully cured sheets of glass-reinforced epoxy (FR-4) with copper on both sides. <b>Prepreg</b> is glass cloth soaked in partly cured resin. It is placed between cores and outer copper foils, then pressed and heated until it bonds everything together. A standard board is 1.6&nbsp;mm thick, and layers come in even counts (Jones: a 3-layer board can cost <i>more</i> than a 4-layer one).</p>
+<p>Sierra's rules for planning (§4.1.7) come straight from lesson 3:</p>
+<ul>
+  <li>Every signal layer should be <b>right next to a plane</b>, ideally ground.</li>
+  <li>Signal layers should be <b>tightly coupled</b> to that plane (&lt;10&nbsp;mil ≈ 0.25&nbsp;mm).</li>
+  <li>Power and ground planes should sit <b>close together</b> (plane capacitance, lesson 5).</li>
+  <li>Keep it <b>symmetric</b> about the centre, or the board warps when it cools after lamination.</li>
+</ul>
+<p>Click any copper layer to change its role (signal → GND → power), or start from a preset:</p>
+<div id="lab-stack"></div>
+<div class="callout rule"><div class="ct">Rule of thumb</div>
+<p>For a Jetson-class carrier board, plan on <b>6 layers minimum</b> (SIG / GND / SIG / PWR / GND / SIG), and <b>8–10</b> if you have many fast interfaces or fine-pitch BGAs. Sierra (§4.1.3): a 0.5&nbsp;mm-pitch BGA often needs 10+ layers with buried vias and via-in-pad. Let the component that is hardest to fan out decide the layer count.</p></div>
+<div class="callout altium"><div class="ct">In Altium</div>
+<p><b>Design » Layer Stack Manager</b>: add layers, set each dielectric's material, thickness and Dk, and mark plane layers. Ask your fab for their <i>standard</i> stackup first and enter it here. Building around materials they stock is cheaper and gives more accurate impedance.</p></div>
+
+<h2 id="impedance" data-short="2.2 Impedance">2.2 Controlled impedance: width, height and material</h2>
+<p>A trace's characteristic impedance depends on its <b>width W</b>, its <b>height H</b> above the reference plane, the <b>dielectric constant Dk</b> (ε<sub>r</sub>) and, a little, the copper thickness (Sierra §3.4). Wider or closer to the plane gives lower impedance. Differential pairs add a fourth knob: the <b>gap S</b> between the two traces.</p>
+<div id="lab-z"></div>
+<div class="callout rule"><div class="ct">Rule of thumb</div>
+<p>Pick H first (it comes from the stackup), then solve for W. Keep W ≤ 2H and the diff-pair gap S ≤ 2W (Sierra §3.5.8). Give impedance-controlled traces a <b>unique width</b> such as 0.127&nbsp;mm instead of 0.125&nbsp;mm, so the fab can find and tune them (Sierra §3.5.6.1). Expect ±10% tolerance unless you pay for tighter. Typical targets: 50&nbsp;Ω single-ended; 90&nbsp;Ω USB; 85–100&nbsp;Ω PCIe; 100&nbsp;Ω HDMI, MIPI CSI and Ethernet. Use the exact values from your module's design guide.</p></div>
+<div class="callout altium"><div class="ct">In Altium</div>
+<p>In the Layer Stack Manager's <b>Impedance</b> tab, create profiles (e.g. <code>SE50</code>, <code>DIFF90</code>, <code>DIFF100</code>). The built-in field solver computes widths per layer. Then point <b>Routing Width</b> and <b>Differential Pairs Routing</b> rules at those profiles, and the interactive router uses the right width on each layer automatically.</p></div>
+
+<h2 id="loss" data-short="2.3 Material & loss">2.3 Material and loss: when FR-4 isn't enough</h2>
+<p>Signals lose energy two ways. <b>Conductor loss</b> grows with √f, because skin effect squeezes current into the copper surface. <b>Dielectric loss</b> grows with f × D<sub>f</sub> (the material's dissipation factor). Standard FR-4 is fine up to a few GHz (Sierra: below about 2.5–3&nbsp;GHz). Beyond that, lower-loss materials cost more but keep more of the signal. Set an interface and a route length:</p>
+<div id="lab-loss"></div>
+<div class="callout why"><div class="ct">Glass weave effect</div>
+<p>FR-4 is glass cloth (Dk ≈ 6) filled with resin (Dk ≈ 3). A narrow trace over a glass bundle sees a higher Dk than its partner trace sitting over resin, so the two halves of a differential pair travel at different speeds: skew from the material itself (Sierra §4.3). Fixes: tighter "spread" glass styles, routing at a slight angle to the weave, or simply keeping long fast routes short.</p></div>
+
+<h2 id="quiz" data-short="Check yourself">Check yourself</h2>
+<div id="quiz-box"></div>
+<div id="lesson-tail"></div>
+
+</div></main>
+</div>
+<script src="assets/core.js"></script>
+<script src="assets/lesson-02.js"></script>
+</body>
+</html>

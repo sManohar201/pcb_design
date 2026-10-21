@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transmission Lines</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div id="topbar"></div>
+<div class="layout">
+<nav id="sidebar"></nav>
+<main><div class="content">
+
+<div class="kicker">Lesson 7 · High-speed signals</div>
+<h1>Transmission lines &amp; reflections</h1>
+<p class="lede">Lesson 1 showed that a fast edge has a physical length, and that a trace longer than about a sixth of it behaves as a transmission line. This lesson shows what that means in practice: the edge <b>travels</b>, it <b>reflects</b> from any change in impedance, and those reflections are what you see as overshoot, ringing and false triggering.</p>
+
+<div class="learn-box">
+  <div><h4>You'll learn</h4><ul>
+    <li>What happens when an edge reaches an unterminated end, and why it rings</li>
+    <li>Series, parallel and Thevenin termination, and their costs</li>
+    <li>How vias, stubs, connectors, necks and corners look to a fast edge (TDR)</li>
+    <li>Why daisy-chain routing beats branching for multi-drop nets</li>
+  </ul></div>
+  <div><h4>From your PDFs</h4>
+    <span class="src">Sierra · §2.3.1–2.3.2 Discontinuities, reflections</span>
+    <span class="src">Sierra · §3.1–3.2 Transmission lines</span>
+    <span class="src">Sierra · §7.2.3 Termination resistors, §7.3.1.4 Stubs</span>
+    <span class="src">Jones · High frequency design techniques</span>
+  </div>
+</div>
+
+<h2 id="launch" data-short="7.1 Reflections">7.1 Launch an edge: reflections and termination</h2>
+<p>When a driver launches an edge onto a line, the line looks like a resistor of value Z<sub>0</sub>. The driver and line form a voltage divider, so the launched step is V × Z<sub>0</sub>/(R<sub>s</sub>+Z<sub>0</sub>). When the step reaches the far end, part of it reflects:</p>
+<div class="formula">ρ = (Z<sub>load</sub> − Z<sub>0</sub>) / (Z<sub>load</sub> + Z<sub>0</sub>)       open end: ρ = +1 (doubles)   short: ρ = −1   matched: ρ = 0</div>
+<p>The reflection travels back, reflects again at the driver (whose ρ depends on R<sub>s</sub>), and keeps bouncing until it dies out. That bouncing is ringing. Termination makes one end match Z<sub>0</sub> so the bouncing stops. Try it:</p>
+<div id="lab-launch"></div>
+<div class="callout rule"><div class="ct">Rule of thumb</div>
+<p><b>Series termination</b> (a resistor right at the driver, so R<sub>driver</sub> + R = Z<sub>0</sub>) is the default for point-to-point CMOS signals: no DC power, one part. Place it <b>at the driver pin</b> (Sierra §7.2.3). <b>Parallel</b> termination at the receiver is for multi-drop nets or when the full swing must arrive at once, at the cost of DC power. Most high-speed SerDes (USB 3, PCIe, MIPI) have termination built into the chips. Your job is to give them a clean, constant-impedance channel.</p></div>
+
+<h2 id="tdr" data-short="7.2 Discontinuities">7.2 What the edge sees: discontinuities and TDR</h2>
+<p>A <b>time-domain reflectometer</b> (TDR) sends a fast edge into a line and records what comes back. Each bump in impedance along the route shows up at a time proportional to its distance. Capacitive features (via pads, wide pads, stubs) dip <i>below</i> Z<sub>0</sub>; inductive or narrow features (necks, via barrels, connectors) rise <i>above</i> it. Turn features on, then change the edge rate. Slow edges smooth small features away.</p>
+<div id="lab-tdr"></div>
+<div class="callout warnbox"><div class="ct">Who's right about 90° corners?</div>
+<p>ROHM §3.1 says right-angle corners cause reflections. Jones says they cause no measurable problems. Sierra recommends 135° bends. Tick <b>4 × 90° corners</b> above: each corner adds only ~10&nbsp;fF of extra capacitance, invisible unless the edge is ~20&nbsp;ps. Jones is right for almost all board-level work. Sierra's reason for gentle bends in diff pairs is different: a bend makes the inner trace shorter, which creates skew (lesson 8). Use 45° bends for neatness and for pairs, but don't expect them to fix signal integrity.</p></div>
+<div class="callout altium"><div class="ct">In Altium</div>
+<p>Avoid stubs with <b>Design » Rules » Routing » Routing Topology</b> set to <i>Daisy-Simple</i> (or Daisy-MidDriven) for multi-drop nets. Altium's Signal Integrity tool (Tools » Signal Integrity, with IBIS models) can simulate reflections on real routed nets. Some versions can also show termination advisor suggestions.</p></div>
+
+<h2 id="topology" data-short="7.3 Topology">7.3 Topology: daisy chain vs branches</h2>
+<p>When one driver feeds two receivers, you can branch the trace into a "T" (star) or route past the first receiver to the second (daisy chain, with a very short stub at each receiver). Each branch is a stub seen from the other branch, so reflections from both ends meet at the junction (Sierra §2.3.1, §7.3.1.4). DDR memory's "fly-by" routing (lesson 11) is a daisy chain for exactly this reason.</p>
+<div id="lab-topo"></div>
+
+<h2 id="quiz" data-short="Check yourself">Check yourself</h2>
+<div id="quiz-box"></div>
+<div id="lesson-tail"></div>
+
+</div></main>
+</div>
+<script src="assets/core.js"></script>
+<script src="assets/lesson-07.js"></script>
+</body>
+</html>

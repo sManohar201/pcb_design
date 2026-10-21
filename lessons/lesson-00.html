@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Carrier Board Tour</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div id="topbar"></div>
+<div class="layout">
+<nav id="sidebar"></nav>
+<main><div class="content">
+
+<div class="kicker">Lesson 0 · Foundations</div>
+<h1>Board tour: anatomy of a carrier board</h1>
+<p class="lede">A compute module (such as a Jetson Orin Nano or NX) carries the processor, memory and power management on a small board with one large connector. The <b>carrier board</b> you design takes power in, makes the rails the module and peripherals need, and brings each interface out to a connector. Before learning the rules, take a tour: what is on such a board, where it goes, and which lesson explains it.</p>
+
+<div class="learn-box">
+  <div><h4>You'll learn</h4><ul>
+    <li>The functional blocks of a module carrier board</li>
+    <li>Why each block sits where it does</li>
+    <li>Which nets are "high-speed" and which are just wires, and how to tell</li>
+  </ul></div>
+  <div><h4>Context</h4>
+    <span class="src">Sierra · §7.2.2 floor planning</span>
+    <span class="src">Jones · building blocks</span>
+    <p class="hint" style="margin:6px 0 0">The layout here is generic. Pin groups, rail voltages and limits for a real module come from NVIDIA's design guide for it.</p>
+  </div>
+</div>
+
+<h2 id="tour" data-short="0.1 Explore the board">0.1 Explore the board</h2>
+<p>Click any block. Each one tells you what it does, why it is placed where it is, what typically goes wrong there, and which lessons cover it.</p>
+<div id="lab-tour"></div>
+
+<h2 id="speed" data-short="0.2 Which nets are fast?">0.2 Which nets are "high-speed"?</h2>
+<p>A net needs transmission-line care (controlled impedance, termination, an unbroken return path, few vias) when its trace is long compared with the <b>length of its edge</b> in copper. An edge rising in 50&nbsp;ps occupies only about 7&nbsp;mm of trace, so a 30&nbsp;mm USB route holds several edge lengths. An I²C edge rising in 300&nbsp;ns stretches over 40&nbsp;m, so no trace on a board is long for it. <b>Edge time matters, not clock frequency</b>: a 25&nbsp;MHz clock from a modern driver can have 1&nbsp;ns edges. Pick an interface:</p>
+<div id="lab-speed"></div>
+<div class="callout rule"><div class="ct">Rule of thumb</div>
+<p>Edge length in copper ≈ rise time ÷ 6.5&nbsp;ps/mm. A route longer than about <b>one sixth of the edge length</b> behaves as a transmission line. Below that it is a lumped wire, and only its resistance and inductance matter (lesson 1). Power nets are never about reflections; they are about resistance, inductance and loops.</p></div>
+
+<h2 id="map" data-short="0.3 The plan">0.3 How the course is organised</h2>
+<div class="tbl-wrap"><table class="tbl">
+  <thead><tr><th>Part</th><th>Question it answers</th><th>Lessons</th></tr></thead>
+  <tbody>
+    <tr><td>A · Foundations</td><td>What is copper electrically, and how are layers arranged?</td><td><a href="lesson-01.html">1</a>, <a href="lesson-02.html">2</a></td></tr>
+    <tr><td>B · Grounding & power</td><td>Where does current flow back? One ground or many? How do I feed the chips cleanly?</td><td><a href="lesson-03.html">3</a>–<a href="lesson-06.html">6</a></td></tr>
+    <tr><td>C · High-speed signals</td><td>How do I get gigabits from the module to a connector intact?</td><td><a href="lesson-07.html">7</a>–<a href="lesson-11.html">11</a></td></tr>
+    <tr><td>D · Placement & manufacturing</td><td>Where does everything go, and can the factory build it?</td><td><a href="lesson-12.html">12</a>, <a href="lesson-13.html">13</a>, <a href="lesson-14.html">★</a></td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="quiz" data-short="Check yourself">Check yourself</h2>
+<div id="quiz-box"></div>
+<div id="lesson-tail"></div>
+
+</div></main>
+</div>
+<script src="assets/core.js"></script>
+<script src="assets/lesson-00.js"></script>
+</body>
+</html>

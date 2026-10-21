@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wires Are R and L</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div id="topbar"></div>
+<div class="layout">
+<nav id="sidebar"></nav>
+<main><div class="content">
+
+<div class="kicker">Lesson 1 · Foundations</div>
+<h1>Every wire is a resistor and an inductor</h1>
+<p class="lede">On a schematic a wire is a perfect connection. On a PCB it is a strip of copper with resistance, inductance and capacitance. These "parasitics" explain almost every layout rule you will meet, so this lesson builds the intuition the rest of the course relies on.</p>
+
+<div class="learn-box">
+  <div><h4>You'll learn</h4><ul>
+    <li>How wide a power trace must be, and why the ground return counts too</li>
+    <li>Why <b>short</b> beats <b>wide</b> when you want low inductance</li>
+    <li>Why a switching trace pollutes its neighbours but a big DC trace doesn't</li>
+    <li>When a trace stops being a "wire" and becomes a transmission line</li>
+  </ul></div>
+  <div><h4>From your PDFs</h4>
+    <span class="src">Jones · Tracks, Track width table</span>
+    <span class="src">ROHM · §1.3 Ringing, §1.5 Resistance, §1.6 Inductance</span>
+    <span class="src">Sierra · §1.2 Is it high-speed?, §2.3.3 Crosstalk</span>
+  </div>
+</div>
+
+<h2 id="resistance" data-short="1.1 Resistance">1.1 Copper has resistance</h2>
+<p>Standard 1&nbsp;oz copper foil is only about 35&nbsp;µm thick. A handy way to think about it is in <b>squares</b>: any square of 1&nbsp;oz copper, whatever its size, has about <b>0.5&nbsp;mΩ</b> between opposite edges. A trace that is 60&nbsp;mm long and 1&nbsp;mm wide is 60 squares in a row, so about 30&nbsp;mΩ.</p>
+<div class="formula">R = ρ · length / (width × thickness)      ρ<sub>Cu</sub> ≈ 1.72×10⁻⁸ Ω·m at 25 °C, rising ≈0.39 %/°C</div>
+<p>30&nbsp;mΩ is nothing for a signal carrying a few milliamps. For a power rail feeding a module that draws several amps, it means a voltage drop <i>and</i> heat. Try it:</p>
+<div id="lab-r"></div>
+<div class="callout rule"><div class="ct">Rule of thumb</div>
+<p>Size power traces for <b>both</b> temperature rise and voltage drop, and use whichever needs more copper. For a several-amp rail like a Jetson module's input, that usually means a polygon pour or plane rather than a trace. Jones's table (10 °C rise, 1&nbsp;oz) gives a feel: 1&nbsp;A ≈ 0.25&nbsp;mm, 3&nbsp;A ≈ 1.3&nbsp;mm, 10&nbsp;A ≈ 7.6&nbsp;mm.</p></div>
+<div class="callout why"><div class="ct">Why the ground return matters</div>
+<p>Every amp that leaves on the 5&nbsp;V trace must come back through ground. If ground is also a thin trace, its voltage drop lifts the module's "0&nbsp;V" above the regulator's. Every signal travelling between the two is then measured against a moving reference. Switch the lab to <b>Same-width trace</b> and watch the ground offset. Lesson 4 builds on this.</p></div>
+<div class="callout altium"><div class="ct">In Altium</div>
+<p><b>Design » Rules » Routing » Width</b>: create a rule scoped to a <code>POWER</code> net class with sensible min/preferred widths. For high-current nets, use <b>Place » Polygon Pour</b> instead of tracks. Altium has no built-in IPC-2221 calculator, so use your fab's calculator or Saturn PCB Toolkit. The <b>PDN Analyzer</b> extension shows IR drop and current density on finished copper.</p></div>
+
+<h2 id="inductance" data-short="1.2 Inductance">1.2 Copper has inductance (and it matters more than you think)</h2>
+<p>Any current creates a magnetic field around it. When the current changes, the changing field induces a voltage that opposes the change:</p>
+<div class="formula">V = L · di/dt        ROHM's rule of thumb: a PCB trace is roughly 1 nH per mm</div>
+<p>That looks harmless until you plug in real numbers from a switching regulator or a fast logic edge. ROHM's example: 10&nbsp;nH (about 10&nbsp;mm of trace) with 1&nbsp;A changing in 5&nbsp;ns gives a <b>2&nbsp;V</b> spike. Explore how length, width and a nearby ground plane change the inductance:</p>
+<div id="lab-l"></div>
+<div class="callout rule"><div class="ct">Rule of thumb</div>
+<p>Inductance grows almost <b>linearly with length</b> but falls only <b>logarithmically with width</b> (ROHM Fig. 10). To cut inductance, make the path <b>shorter</b> or bring the <b>return path closer</b> (a plane directly underneath). Making the trace wider barely helps.</p></div>
+<div class="callout why"><div class="ct">A subtle point: inductance belongs to a loop</div>
+<p>Strictly, inductance is a property of a whole current <i>loop</i>. The "nH per mm of trace" figure is bookkeeping for one side of the loop. When the return current flows in a plane 0.2&nbsp;mm below, the fields of the two halves almost cancel and the loop inductance collapses. Tick <b>Ground plane underneath</b> in the lab to see this. Lesson 3 is about exactly this idea.</p></div>
+
+<h2 id="neighbours" data-short="1.3 Neighbours">1.3 Neighbours: what a power trace does to a signal trace</h2>
+<p>Two traces side by side interact through two fields:</p>
+<ul>
+  <li><b>Magnetic (mutual inductance)</b>: the aggressor's changing current induces a voltage in the victim. This is driven by <b>di/dt</b>.</li>
+  <li><b>Electric (mutual capacitance)</b>: the aggressor's changing voltage pushes current into the victim. This is driven by <b>dv/dt</b>.</li>
+</ul>
+<p>Neither cares how big the current is, only how fast it <i>changes</i>. That leads to one of the most useful insights in layout. Pick an aggressor and a victim and move them around:</p>
+<div id="lab-x"></div>
+<div class="callout rule"><div class="ct">Rule of thumb</div>
+<p>Rank nets by <b>di/dt and dv/dt</b>, not by current. On a carrier board the worst aggressors are the buck converter's <b>switch node</b> (large dv/dt) and <b>hot loop</b> (large di/dt), clocks, and fast I/O. A 5&nbsp;A DC rail is benign. The most vulnerable victims are <b>high-impedance nodes</b>: regulator feedback dividers, analog inputs, crystal pins and reset lines. Keep those short and far from aggressors (ROHM §2.5).</p></div>
+<div class="callout why"><div class="ct">Where the 1/(1+(D/H)²) comes from</div>
+<p>Jones gives the coupling coefficient between two traces over a plane as <code>1 / (1 + (D/H)²)</code>. It is the same curve as the spread of the aggressor's return current in the plane (the orange band in the cross-section). Once the spacing D is a few times the height H above the plane, coupling falls off fast. A thinner dielectric (smaller H) is as effective as more spacing, and costs no board area.</p></div>
+<div class="callout altium"><div class="ct">In Altium</div>
+<p>Put aggressors and victims in <b>net classes</b> (e.g. <code>SW_NODE</code>, <code>SENSITIVE</code>). Add a <b>Design » Rules » Electrical » Clearance</b> rule scoped <i>InNetClass('SW_NODE')</i> vs <i>InNetClass('SENSITIVE')</i> with a generous clearance (e.g. 1&nbsp;mm or more). Online DRC then stops you from routing them together.</p></div>
+
+<h2 id="tline" data-short="1.4 Transmission line?">1.4 When does a wire become a transmission line?</h2>
+<p>Signals on FR-4 travel at roughly half the speed of light: about <b>175&nbsp;mm/ns</b> on an outer layer and <b>150&nbsp;mm/ns</b> on an inner layer (Sierra: 6.9 and 5.9&nbsp;in/ns). A rising edge therefore has a physical <b>length</b> on the board:</p>
+<div class="formula">edge length = rise time × velocity          e.g. 100 ps × 175 mm/ns = 17.5 mm</div>
+<p>If the trace is much shorter than the edge, the whole trace rises together and behaves like a simple wire ("lumped"). If the trace is comparable to or longer than the edge, the edge <i>travels</i> along it, and any change in impedance reflects part of it back. A common threshold is <b>trace length &gt; edge length / 6</b>. That is the same as Sierra's λ/12 rule at F<sub>m</sub> = 0.5/t<sub>r</sub>.</p>
+<div id="lab-t"></div>
+<div class="callout why"><div class="ct">Why a Jetson carrier board is a "high-speed design"</div>
+<p>Nothing on the board needs to "run at GHz" to count as high-speed. USB 3, PCIe and MIPI CSI have edges of tens of picoseconds, so <b>every one of those routes is a transmission line</b> and must be designed as controlled impedance (lessons 7–8). Meanwhile I²C, GPIOs and slow control signals are lumped and forgiving. Knowing which is which tells you where to spend your effort.</p></div>
+<div class="callout altium"><div class="ct">In Altium</div>
+<p>Flag fast nets early. Add <b>Differential Pair</b> directives in the schematic (nets named <code>_P/_N</code>) and group nets into classes. Define <b>Impedance Profiles</b> in the <b>Layer Stack Manager</b> (lesson 2). Routing rules can then reference them.</p></div>
+
+<h2 id="quiz" data-short="Check yourself">Check yourself</h2>
+<div id="quiz-box"></div>
+<div id="lesson-tail"></div>
+
+</div></main>
+</div>
+<script src="assets/core.js"></script>
+<script src="assets/lesson-01.js"></script>
+</body>
+</html>

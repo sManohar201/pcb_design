@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crosstalk</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div id="topbar"></div>
+<div class="layout">
+<nav id="sidebar"></nav>
+<main><div class="content">
+
+<div class="kicker">Lesson 9 · High-speed signals</div>
+<h1>Crosstalk</h1>
+<p class="lede">Lesson 1.3 showed one trace disturbing its neighbour through mutual inductance and capacitance. On a transmission line the effect has a direction and a shape: <b>near-end</b> crosstalk travels back toward the driver, <b>far-end</b> crosstalk rides along with the edge. Their behaviour leads directly to the spacing rules in your PDFs.</p>
+
+<div class="learn-box">
+  <div><h4>You'll learn</h4><ul>
+    <li>Why near-end crosstalk saturates with length, but far-end crosstalk keeps growing</li>
+    <li>Why striplines have almost no far-end crosstalk</li>
+    <li>What the 3W rule buys you, and when guard traces help (or hurt)</li>
+    <li>Why adjacent signal layers must cross at right angles</li>
+  </ul></div>
+  <div><h4>From your PDFs</h4>
+    <span class="src">Sierra · §2.3.3 Crosstalk, techniques</span>
+    <span class="src">Sierra · §7.3.1.4 Signal proximity</span>
+    <span class="src">Jones · coupling 1/(1+(D/H)²)</span>
+  </div>
+</div>
+
+<h2 id="nextfext" data-short="9.1 NEXT & FEXT">9.1 Near-end and far-end crosstalk</h2>
+<p>As the aggressor's edge travels down its line, it couples a little energy into the victim at every point. Part of it heads <b>backward</b> to the victim's near end (NEXT). It arrives spread out over the whole round trip, so once the coupled length is longer than about half the edge length, it stops growing and <b>saturates</b>. Part of it travels <b>forward</b> with the aggressor's edge (FEXT) and piles up the whole way, so it grows with length. The inductive and capacitive parts of FEXT have opposite signs. In a stripline they cancel almost exactly; in a microstrip they don't, because some field is in air.</p>
+<div id="lab-xt"></div>
+<div class="callout rule"><div class="ct">Rule of thumb</div>
+<p>Use length to control <b>FEXT</b> (keep parallel runs short, or route on inner stripline layers). Use spacing and dielectric height to control <b>NEXT</b>: once you're past the saturation length, only D/H reduces it. Sierra §2.3.3: increase spacing, keep traces close to the plane, use differential signalling, route adjacent layers orthogonally, and reduce parallel run length.</p></div>
+
+<h2 id="rules" data-short="9.2 Spacing rules">9.2 Spacing rules: 3W, guard traces and adjacent layers</h2>
+<p>The "3W rule" says traces should be at least three trace widths apart, centre to centre. It is a shortcut for "spacing large compared with height above the plane", since W is usually about 1–2× H for a 50&nbsp;Ω line. Below, a victim sits in the middle of a 5-trace bus. Change the spacing, add guards, or add a second signal layer above:</p>
+<div id="lab-bus"></div>
+<div class="callout rule"><div class="ct">Rule of thumb</div>
+<p>Default to 3W centre-to-centre for ordinary signals, and more (5W, or 30–50&nbsp;mil) around clocks and fast pairs (Sierra §3.5.3). A <b>guard trace</b> only helps if it is grounded with stitching vias along its length. An unconnected or single-ended guard can make crosstalk worse. Never run two adjacent signal layers in parallel; route them orthogonally, or better, put a plane between them (lesson 2).</p></div>
+<div class="callout altium"><div class="ct">In Altium</div>
+<p>Use <b>Clearance</b> rules by net class (e.g. <code>CLOCKS</code> 0.5&nbsp;mm to everything). For parallel-run limits, the <b>Parallel Segment</b> rule (Design » Rules » High Speed) caps how long two nets may run side by side at a given gap. It is the direct way to control FEXT.</p></div>
+
+<h2 id="quiz" data-short="Check yourself">Check yourself</h2>
+<div id="quiz-box"></div>
+<div id="lesson-tail"></div>
+
+</div></main>
+</div>
+<script src="assets/core.js"></script>
+<script src="assets/lesson-09.js"></script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vias</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div id="topbar"></div>
+<div class="layout">
+<nav id="sidebar"></nav>
+<main><div class="content">
+
+<div class="kicker">Lesson 10 · High-speed signals</div>
+<h1>Vias</h1>
+<p class="lede">A via is a plated hole joining layers, and almost every net on a carrier board uses some. To a DC current it's a tiny resistor. To a fast edge it is a short, badly matched transmission line, often with an unused stub hanging off it. This lesson covers via types, what a via does to a signal, how much current it carries, and how via size decides whether a fine-pitch BGA can be routed at all.</p>
+
+<div class="learn-box">
+  <div><h4>You'll learn</h4><ul>
+    <li>Through, blind, buried, micro- and back-drilled vias, and what a via stub does at GHz</li>
+    <li>How pad, antipad, drill and return vias set a via's impedance</li>
+    <li>How many vias a high-current connection needs</li>
+    <li>Why BGA pitch drives layer count and HDI technology</li>
+  </ul></div>
+  <div><h4>From your PDFs</h4>
+    <span class="src">Sierra · §7.4 Vias and microvias, §7.4.3 Via design</span>
+    <span class="src">Sierra · §2.3.4 Via stub, §4.1.2–4.1.3 Aspect ratio, BGA stackups</span>
+    <span class="src">Jones · Vias, Multi-layer design</span>
+  </div>
+</div>
+
+<h2 id="types" data-short="10.1 Types & stubs">10.1 Via types and the stub problem</h2>
+<p>A standard <b>through via</b> is drilled through the whole board. If your signal only goes from L1 to L3, the rest of the barrel below L3 is a <b>stub</b>: an open-ended piece of line that resonates when it is a quarter-wavelength long, removing that frequency from the signal (Sierra §2.3.4). Fixes cost money: <b>back-drilling</b> removes the stub with a larger drill from the other side; <b>blind</b> and <b>buried</b> vias (and laser-drilled <b>microvias</b>, typically spanning one layer) never create it.</p>
+<div id="lab-stub"></div>
+<div class="callout rule"><div class="ct">Rule of thumb</div>
+<p>Keep the stub's quarter-wave resonance well above the signal's Nyquist frequency (a common target is ≥ 3×). For 8–16&nbsp;Gb/s links that means routing fast signals to layers <b>near the bottom</b> when the via starts at the top (short stub), back-drilling, or using blind vias. Mind the aspect ratio: through-holes up to ~10:1 (board thickness : drill) and microvias ~0.75:1 (Sierra §4.1.2).</p></div>
+
+<h2 id="zvia" data-short="10.2 Via impedance">10.2 A via as a discontinuity: pads, antipads and return vias</h2>
+<p>Each pad sitting inside a plane's clearance hole (antipad) is a small capacitor to that plane. The barrel and its return path form an inductance. Too much capacitance (big pads, small antipads) gives a low-impedance dip; too much inductance (long barrel, distant return via) gives a bump. A good high-speed via balances the two near the line impedance.</p>
+<div id="lab-zvia"></div>
+<div class="callout rule"><div class="ct">Rule of thumb</div>
+<p>For fast signals: remove unused (non-functional) pads on inner layers, size antipads to bring the via close to the line impedance (without making the plane "Swiss cheese": lesson 5.4), and place a <b>ground return via</b> within ~1&nbsp;mm of every signal via that changes reference (lesson 3.4).</p></div>
+
+<h2 id="current" data-short="10.3 Current">10.3 How much current can a via carry?</h2>
+<p>Sierra's trick (§7.4.3.2): unroll the via barrel. It becomes a "trace" whose width is the hole's circumference (π × drill) and whose thickness is the plating (≈20–25&nbsp;µm). Apply the IPC-2221 trace formula from lesson 1. Their example: a 0.2&nbsp;mm (8&nbsp;mil) drill carries ~0.8&nbsp;A for a 5&nbsp;°C rise. Jones: "for high currents, use multiple vias."</p>
+<div id="lab-cur"></div>
+
+<h2 id="bga" data-short="10.4 BGA fanout">10.4 BGA fanout: why pitch drives layer count</h2>
+<p>A ball-grid array's inner balls can only escape through vias, and their traces must squeeze between the vias of the outer rows. Whether one trace fits between two vias depends on pitch, via pad size and the fab's trace/space. That decides how many rows each layer can escape, and so how many layers you need. On a Jetson carrier the module connector isn't a BGA, but PCIe switches, USB hubs and Ethernet PHYs often are.</p>
+<div id="lab-bga"></div>
+<div class="callout altium"><div class="ct">In Altium</div>
+<p>Define via styles in <b>Design » Rules » Routing » Routing Via Style</b> (one for signals, a bigger one for power). Blind, buried and micro vias need the <b>drill pairs</b> set up in the Layer Stack Manager (Via Types tab). For BGAs, <b>Tools » Fanout » Component</b> creates dog-bone or via-in-pad fanouts automatically. Back-drilling is set per via (Properties) and reported in the fab output.</p></div>
+
+<h2 id="quiz" data-short="Check yourself">Check yourself</h2>
+<div id="quiz-box"></div>
+<div id="lesson-tail"></div>
+
+</div></main>
+</div>
+<script src="assets/core.js"></script>
+<script src="assets/lesson-10.js"></script>
+</body>
+</html>

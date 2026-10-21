@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Power Planes & PDN</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div id="topbar"></div>
+<div class="layout">
+<nav id="sidebar"></nav>
+<main><div class="content">
+
+<div class="kicker">Lesson 5 · Grounding & power</div>
+<h1>Power planes &amp; the power delivery network</h1>
+<p class="lede">A module or SoC doesn't draw a steady current. It changes by amps in nanoseconds, while a regulator takes microseconds to react. The <b>power delivery network (PDN)</b> covers that gap: planes, capacitors and the vias that connect them. This lesson shows why each piece is placed where it is.</p>
+
+<div class="learn-box">
+  <div><h4>You'll learn</h4><ul>
+    <li>Which capacitor supplies the current in each time window after a load step</li>
+    <li>Why the <b>vias and pads</b> of a capacitor matter more than its value</li>
+    <li>How to set a target impedance and pick a capacitor bank that meets it</li>
+    <li>How via fields and necks in a plane create IR drop and hot spots</li>
+  </ul></div>
+  <div><h4>From your PDFs</h4>
+    <span class="src">Sierra · §6 Power integrity (target impedance, PI-7 to PI-18)</span>
+    <span class="src">Sierra · §7.3.1.2 Polygon voids</span>
+    <span class="src">Jones · Power planes, Good bypassing</span>
+    <span class="src">ROHM · §2.1 C<sub>IN</sub> + C<sub>BYPASS</sub></span>
+  </div>
+</div>
+
+<h2 id="decoupling" data-short="5.1 Decoupling">5.1 Who supplies the current when the load jumps?</h2>
+<p>When an IC's current steps up, the extra charge has to come from somewhere <i>immediately</i>. The regulator is far away and its control loop is slow, so the charge comes from the nearest stored energy first. That means a <b>hierarchy</b>: on-package capacitance (first few ns), local ceramic capacitors (tens of ns), bulk capacitors (µs), and finally the regulator. Each tier can only deliver current as fast as the <b>inductance</b> of its connection allows (V = L·di/dt again).</p>
+<p>Drag the capacitor bank toward or away from the IC, and compare power delivered through a <b>plane pair</b> with power delivered through a <b>trace</b>. The time axis is logarithmic so you can see each tier take over.</p>
+<div id="lab-droop"></div>
+<div class="callout rule"><div class="ct">Rule of thumb</div>
+<p>Put the small ceramic capacitors <b>right at the power pins</b>, on the same side or directly underneath for BGAs (Jones: double-sided loading). With a thin plane pair, mounting inductance matters more than a few mm of distance. If power reaches the IC through a <b>trace</b>, every mm of trace between capacitor and pin counts, so keep it extremely short. Never share one via between several capacitors and pins if you can avoid it.</p></div>
+<div class="callout warnbox"><div class="ct">Where the PDFs differ</div>
+<p>Jones suggests routing "the IC power pin to the bypass capacitor first, and then to the power plane" to keep noise off the plane, but notes that at very high frequency a direct pin-to-plane via is better. Modern high-speed practice (Sierra §6) treats the plane pair as part of the decoupling, so every power pin and every capacitor gets its own short via to the planes.</p></div>
+
+<h2 id="mounting" data-short="5.2 Mounting inductance">5.2 Mounting inductance: the vias matter more than the capacitor</h2>
+<p>A 0402 ceramic capacitor has only about 0.3–0.5&nbsp;nH of internal inductance (ESL). The pads, traces and vias that connect it to the planes form a loop that easily adds 1–2&nbsp;nH more. Sierra puts it this way: "the overall inductance of a decoupling capacitor can be of the order of a few nH as compared to ~1&nbsp;nH for the internal ESL". Compare the common footprint styles:</p>
+<div id="lab-mount"></div>
+<div class="callout rule"><div class="ct">Rule of thumb</div>
+<p>Make the loop <b>capacitor → via → plane → via → capacitor</b> as small as possible: vias at or beside the pads (not at the end of traces), the two vias close together, two vias per pad when there is room, and power/ground planes as close to the surface the capacitor sits on as the stackup allows (Sierra §6.4.2.6–8).</p></div>
+<div class="callout altium"><div class="ct">In Altium</div>
+<p>Build decoupling footprints with the vias as part of the land pattern, or use <b>Fanout</b> with "Fanout Style" set close to pads. For via-in-pad, mark the vias as <b>filled and capped (VIPPO)</b> in the fab notes. Open via-in-pad wicks solder away during reflow (Sierra §7.4.1.5). Set <b>Design » Rules » Plane » Power Plane Connect Style</b> to <i>Direct Connect</i> for decoupling vias, not thermal relief.</p></div>
+
+<h2 id="target" data-short="5.3 Target impedance">5.3 Target impedance: designing the capacitor bank</h2>
+<p>Sierra's approach turns "enough decoupling" into a number. If a rail can tolerate a ripple of <i>V × ripple%</i> and the load current changes by up to ~½·I<sub>max</sub>, then the PDN impedance seen by the IC must stay below:</p>
+<div class="formula">Z<sub>target</sub> = (V<sub>rail</sub> × ripple%) / (0.5 × I<sub>max</sub>)          Sierra eq. PI-7</div>
+<p>over the whole frequency range of the load's current changes. Each capacitor is only a capacitor below its self-resonant frequency (SRF). Above it, its ESL makes it an inductor. Different values cover different bands, and where one band hands over to the next you can get an <b>anti-resonance peak</b>. Build a bank and keep the bold curve under the dashed line:</p>
+<div id="lab-pdn"></div>
+<div class="callout rule"><div class="ct">Rule of thumb</div>
+<p>Cover the bands in order: <b>regulator</b> (DC–~100&nbsp;kHz), <b>bulk</b> (kHz–MHz), <b>1–10&nbsp;µF</b> ceramics (~1–20&nbsp;MHz), <b>100&nbsp;nF / 10&nbsp;nF</b> (~20–200&nbsp;MHz), and the <b>plane pair's own capacitance</b> plus on-package capacitors above that. Use several values (Sierra: at least three) or many of the same value to avoid tall anti-resonances. Lowering mounting inductance moves every curve down at high frequency.</p></div>
+<div class="callout altium"><div class="ct">In Altium</div>
+<p>Altium's <b>PDN Analyzer</b> is a DC (IR-drop) tool. AC impedance analysis like this lab needs a dedicated PI tool or SPICE. Capacitor vendors publish free models with real ESR/ESL/DC-bias curves (e.g. Murata SimSurfing, TDK and KEMET online tools). Plan the bank per rail in the schematic, then place it by power pin.</p></div>
+
+<h2 id="crowding" data-short="5.4 Current crowding">5.4 Plane shape: via fields, necks and hot spots</h2>
+<p>Power planes also have to carry DC: several amps from the regulator to the module's power pins. A plane looks huge, but a carrier board's planes are full of holes. Every signal via that passes through a plane needs a clearance (<b>antipad</b>), and under a big connector those holes can merge into a <b>wall</b> with only thin copper webs, or none, left between them. Sierra calls the result "hot spots" (§7.3.1.2).</p>
+<div id="lab-crowd"></div>
+<div class="callout rule"><div class="ct">Rule of thumb</div>
+<p>Keep copper <b>webs between antipads</b> (Sierra: place vias ≈15&nbsp;mil apart where possible). <b>Stagger</b> via rows rather than lining them up, keep antipads no larger than the fab needs, avoid narrow necks between islands, and use <b>many vias</b> where current changes layers (Jones). Check with an IR-drop tool before you sign off a high-current rail.</p></div>
+<div class="callout altium"><div class="ct">In Altium</div>
+<p>Antipad size is set by <b>Design » Rules » Plane » Power Plane Clearance</b> (for plane layers) or the polygon clearance rules. Check plane connectivity in single-layer mode, and run <b>PDN Analyzer</b> on high-current nets to see voltage drop and current-density maps similar to this lab.</p></div>
+
+<h2 id="quiz" data-short="Check yourself">Check yourself</h2>
+<div id="quiz-box"></div>
+<div id="lesson-tail"></div>
+
+</div></main>
+</div>
+<script src="assets/core.js"></script>
+<script src="assets/lesson-05.js"></script>
+</body>
+</html>

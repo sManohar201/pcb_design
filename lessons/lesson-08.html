@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Differential Pairs</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div id="topbar"></div>
+<div class="layout">
+<nav id="sidebar"></nav>
+<main><div class="content">
+
+<div class="kicker">Lesson 8 · High-speed signals</div>
+<h1>Differential pairs</h1>
+<p class="lede">Almost every fast interface on a Jetson carrier board (USB 3, PCIe, MIPI CSI, HDMI/DP, Ethernet) is differential: two traces carrying opposite copies of the signal. This lesson shows why that works so well, what quietly breaks it (<b>skew</b>), and how the routing rules in your PDFs keep it working.</p>
+
+<div class="learn-box">
+  <div><h4>You'll learn</h4><ul>
+    <li>How a pair rejects common noise, and the differential vs common-mode view</li>
+    <li>How length mismatch turns into common-mode noise, EMI and a closing eye</li>
+    <li>Where mismatch comes from (bends, breakouts, vias, caps) and where to compensate it</li>
+    <li>Tight vs loose coupling, and spacing to neighbouring pairs</li>
+  </ul></div>
+  <div><h4>From your PDFs</h4>
+    <span class="src">Sierra · §3.5.2–3.5.4 Routing pairs, length matching</span>
+    <span class="src">Sierra · §7.3.1.5–7.3.1.6 Diff pairs, serpentines</span>
+    <span class="src">Sierra · §2.3.5 Skew and jitter</span>
+  </div>
+</div>
+
+<h2 id="why" data-short="8.1 Why differential">8.1 Why differential, and what skew does</h2>
+<p>The receiver only looks at the <b>difference</b> P − N. Noise that hits both traces equally (ground shift, coupling from a nearby aggressor, a field from the buck converter) is <b>common-mode</b> and cancels in the subtraction. This only works if P and N are perfect mirror images arriving at the same time. If one trace is longer, its edges arrive late: the pair's transitions no longer line up, the differential edge smears out, and during each transition the pair has a <b>common-mode spike</b>. That spike is the part that radiates, because the two currents no longer cancel.</p>
+<div id="lab-why"></div>
+<div class="callout rule"><div class="ct">Rule of thumb</div>
+<p>Match the two traces of a pair <b>tightly</b> (intra-pair skew is usually specified in ps or a few mils; check your interface's design guide). Sierra suggests keeping it within ~20% of the rise time (§3.5.7). Matching <i>between</i> different pairs (e.g. between PCIe lanes) is usually much looser, because the receivers deskew lanes, while clock-to-data on source-synchronous links like MIPI CSI is tighter.</p></div>
+
+<h2 id="route" data-short="8.2 Route a pair">8.2 Route a pair: where mismatch comes from, and where to fix it</h2>
+<p>Every bend makes the inner trace shorter. Asymmetric breakouts, staggered vias and offset AC-coupling capacitors add more. Sierra's key point (§3.5.4, §7.3.1.6): fix the mismatch <b>close to where it happens</b>, and <b>within each segment</b> between vias. A pair that is matched only in total can still spend most of its length out of step. The design-rule check won't catch that, because it only compares totals.</p>
+<div id="lab-route"></div>
+<div class="callout rule"><div class="ct">Rule of thumb</div>
+<p>Route pairs on the same layer, with the same number of vias, symmetrical breakouts and symmetrical AC caps (0402, both in a line). Alternate bend directions when you can, so the bends cancel each other. Put serpentine compensation within ~15&nbsp;mm of the mismatch. Use small bumps, not deep accordions (spacing ≥ 4W, segments ≥ 1.5W; Sierra §7.3.1.3). Never place vias or other parts <i>between</i> the two traces.</p></div>
+<div class="callout altium"><div class="ct">In Altium</div>
+<p>Name nets <code>USB3_TX_P/_N</code> and add Differential Pair directives. Route with <b>Route » Interactive Differential Pair Routing</b>, then use <b>Route » Interactive Diff Pair Length Tuning</b> for intra-pair skew. Add a <b>Matched Lengths</b> rule for the tolerance. Remember it only checks totals, so inspect each segment yourself.</p></div>
+
+<h2 id="coupling" data-short="8.3 Coupling & spacing">8.3 Tight or loose coupling, and space to other pairs</h2>
+<p>Differential impedance depends on the gap S between the traces (lesson 2.2). Tightly coupled pairs (S ≈ W) share more field with each other, so they reject noise slightly better and take less space. But their impedance changes more wherever the gap changes (pad entries, breakouts). Loosely coupled pairs behave more like two independent 50&nbsp;Ω lines. Either works if you are consistent. What matters as much is the space to <i>other</i> signals: Sierra recommends ≥ 5× trace width between pairs and ~30&nbsp;mil (0.76&nbsp;mm) to other signals, more for clocks.</p>
+<div id="lab-cpl"></div>
+
+<h2 id="quiz" data-short="Check yourself">Check yourself</h2>
+<div id="quiz-box"></div>
+<div id="lesson-tail"></div>
+
+</div></main>
+</div>
+<script src="assets/core.js"></script>
+<script src="assets/lesson-08.js"></script>
+</body>
+</html>

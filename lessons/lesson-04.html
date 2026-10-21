@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grounding Multiple Voltages</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div id="topbar"></div>
+<div class="layout">
+<nav id="sidebar"></nav>
+<main><div class="content">
+
+<div class="kicker">Lesson 4 · Grounding & power</div>
+<h1>Grounding with multiple voltage levels</h1>
+<p class="lede">A carrier board has a 12–20&nbsp;V input, a 5&nbsp;V module rail, 3.3&nbsp;V and 1.8&nbsp;V I/O, maybe an analog section and several cables to the outside world. How many grounds should it have? Usually one, but <i>where you put things on it</i> matters a great deal.</p>
+
+<div class="learn-box">
+  <div><h4>You'll learn</h4><ul>
+    <li>Why different voltages do <b>not</b> need different grounds</li>
+    <li>What a buck converter, a USB link and a high-current return do to a sensitive analog circuit, depending on where you place them</li>
+    <li>When a split ground plane helps, and how it usually backfires</li>
+    <li>How to arrange power islands, and why fast signals should reference ground</li>
+    <li>Chassis ground, connectors and ESD current paths</li>
+  </ul></div>
+  <div><h4>From your PDFs</h4>
+    <span class="src">Sierra · §7.2.8 Separating analog & digital</span>
+    <span class="src">Sierra · §7.3.1.1, §7.3.1.8–9 Split & virtual split</span>
+    <span class="src">Sierra · §7.2.9–10 Ground isolation, surge suppressors</span>
+    <span class="src">Jones · Good grounding, Power planes</span>
+    <span class="src">ROHM · §2.6 AGND/PGND</span>
+  </div>
+</div>
+
+<h2 id="one-ground" data-short="4.1 One ground">4.1 One ground for every voltage</h2>
+<p>A voltage is always measured <b>between two points</b>. "3.3&nbsp;V" means 3.3&nbsp;V above ground. Every rail on the board is defined relative to the same reference, and every signal that travels from a 1.8&nbsp;V chip to a 5&nbsp;V module needs a return path between them. So the rails differ, but the <b>ground is shared</b>.</p>
+<p>Click each rail below to follow its current loop, then try the common beginner idea of giving each voltage its own ground.</p>
+<div id="lab-tree"></div>
+<div class="callout rule"><div class="ct">The actual exceptions</div>
+<div class="tbl-wrap"><table class="tbl">
+<tr><th>Situation</th><th>What you do</th><th>Why</th></tr>
+<tr><td><b>Isolated domains</b> (isolated DC/DC, PoE, Ethernet line side of the magnetics)</td><td>Truly separate grounds with an isolation gap and creepage distance</td><td>Safety or noise isolation. No signal crosses without a transformer, opto or digital isolator.</td></tr>
+<tr><td><b>Chassis / shield ground</b></td><td>Separate copper at the connectors, tied to circuit ground directly or through an RC / capacitors at the I/O edge</td><td>Lets cable shield and ESD currents go to the enclosure without crossing your circuit (section 4.4)</td></tr>
+<tr><td><b>Regulator AGND/PGND pins</b></td><td>Same net, connected at one point recommended by the datasheet</td><td>Keeps the switching return out of the control circuit's reference (ROHM §2.6)</td></tr>
+<tr><td><b>Precision mixed-signal</b></td><td>One ground plane, <i>partitioned by placement</i> ("virtual split", Sierra §7.3.1.9)</td><td>Section 4.2 shows why this beats a physical split</td></tr>
+</table></div></div>
+
+<h2 id="floorplan" data-short="4.2 Placement & ground">4.2 Placement decides the ground noise</h2>
+<p>A solid ground plane is a very low impedance, but not zero. A circuit sees noise on "ground" when <b>someone else's current</b> flows through the part of the plane it uses as its reference. There are three ways that happens on a carrier board:</p>
+<ul>
+  <li><b>Magnetic field from the buck converter.</b> Its hot loop switches amps in nanoseconds, and the field falls off roughly as 1/distance³.</li>
+  <li><b>High-frequency return currents</b> from USB/PCIe/SPI that flow under or near your analog trace. At high frequency they follow their own traces (lesson 3), so this depends on where those traces run.</li>
+  <li><b>DC / low-frequency return currents.</b> The module's amps spread across the plane on their way back to the regulator and create small voltage differences between "grounds" a few cm apart (common-impedance coupling).</li>
+</ul>
+<p>Below is a simplified carrier board with a 16-bit ADC measuring an external sensor. <b>Drag the blocks</b> and switch between ground strategies. The noise budget at the ADC input updates live.</p>
+<div id="lab-floor"></div>
+<div class="callout rule"><div class="ct">Rule of thumb</div>
+<p>Use <b>one solid ground plane</b> and get separation by <b>placement</b>. Put noisy power (buck converters) near the power entry, keep fast digital routes away from analog routes, and make sure no high-current or high-frequency return path has a reason to flow under the analog section. Sierra §7.3.1.1: "In most cases, a full single ground is more reliable and provides better results than split grounds, as long as the placement of the components is adequate."</p></div>
+<div class="callout warnbox"><div class="ct">Where the PDFs disagree</div>
+<p>Jones (2004) recommends star grounding "as a matter of course" and split planes for analog/digital. Sierra (2020) prefers one solid plane. Both are right in their own context. Star grounding minimises <i>DC</i> common-impedance coupling, which matters for audio and DC-precision boards with no fast signals. On a board full of fast edges, the large loops that star grounding creates are a bigger problem. Try the <b>Star ground</b> mode above: DC shift goes to nearly zero, but HF noise and emissions jump.</p></div>
+<div class="callout altium"><div class="ct">In Altium</div>
+<p>Keep one <code>GND</code> net. For a virtual split, draw <b>Rooms</b> (Design » Rooms) for the analog and digital areas and use placement rules to keep components in them. If you truly need separate nets (e.g. <code>AGND</code>/<code>PGND</code> joined at one point), use a <b>Net Tie</b> component so the DRC accepts the deliberate short. Split planes are made in the Layer Stack Manager as plane layers, then divided with <b>Place » Line</b> on that plane.</p></div>
+
+<h2 id="islands" data-short="4.3 Power islands">4.3 Power islands, and why fast signals should reference ground</h2>
+<p>With several rails you can't give each one its own plane layer. The usual answer is a <b>power layer split into islands</b> (5&nbsp;V here, 3.3&nbsp;V there, 1.8&nbsp;V under the camera connectors) next to a solid ground layer. That is fine for <i>distributing power</i>. The trouble starts when a <b>signal layer uses the power layer as its reference</b>: every island boundary it crosses is a gap in its return path.</p>
+<div id="lab-islands"></div>
+<div class="callout rule"><div class="ct">Rule of thumb</div>
+<p>Arrange the stackup so fast signals are adjacent to <b>ground</b>, and route on the signal layer next to it. Islands on the power layer can then be any shape you like. If a fast signal must reference a power island, keep it within one island and provide stitching capacitors (10–100&nbsp;nF) at both ends and at any unavoidable boundary crossing (Sierra §7.3.1.7). Make islands as large as possible to lower their impedance (Sierra §7.3.1.1).</p></div>
+
+<h2 id="chassis" data-short="4.4 Chassis & ESD">4.4 Chassis ground, connectors and ESD</h2>
+<p>Connectors are where the outside world touches your board: cable shields, static discharge from fingers and surges. An 8&nbsp;kV contact discharge (IEC 61000-4-2) drives around <b>30&nbsp;A with a ~1&nbsp;ns rise time</b>. With V = L·di/dt from lesson 1, <b>every nanohenry in its path adds roughly 37&nbsp;V</b>. The goal is to divert that current to ground or chassis <i>right at the connector</i>, before it reaches anything sensitive.</p>
+<div id="lab-esd"></div>
+<div class="callout rule"><div class="ct">Rule of thumb</div>
+<p>Place TVS/ESD diodes <b>at the connector</b>, between the connector and everything else, with the shortest possible path to ground: a via directly at the diode's ground pad, with no trace. Sierra §7.2.10: place surge suppressors close to the connectors and avoid vias in series with them. Connect connector shells to chassis or ground <b>at the connector</b>, so shield currents never wander across the board.</p></div>
+<div class="callout altium"><div class="ct">In Altium</div>
+<p>Give connector shells their own net (e.g. <code>CHASSIS</code>) and pour a separate polygon for it along the I/O edge. Tie it to <code>GND</code> through the capacitors or Net Tie your design calls for. Use a <b>Placement » Component Clearance</b> or a Room to keep ESD parts within a few mm of their connector.</p></div>
+
+<h2 id="quiz" data-short="Check yourself">Check yourself</h2>
+<div id="quiz-box"></div>
+<div id="lesson-tail"></div>
+
+</div></main>
+</div>
+<script src="assets/core.js"></script>
+<script src="assets/lesson-04.js"></script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Return Current Paths</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div id="topbar"></div>
+<div class="layout">
+<nav id="sidebar"></nav>
+<main><div class="content">
+
+<div class="kicker">Lesson 3 · Grounding & power</div>
+<h1>Return current: every signal is a loop</h1>
+<p class="lede">If you remember one idea from this course, make it this one. Current always flows in a loop, and the half of the loop you don't draw (the return path) decides your noise, your EMI and your signal integrity.</p>
+
+<div class="learn-box">
+  <div><h4>You'll learn</h4><ul>
+    <li>Why the return current takes a different route at DC than at high frequency</li>
+    <li>What a slot or split in a plane does to a fast signal, and how to fix it</li>
+    <li>Why a thin dielectric to the plane keeps fields (and crosstalk) tight</li>
+    <li>What happens to the return current when a signal changes layers</li>
+  </ul></div>
+  <div><h4>From your PDFs</h4>
+    <span class="src">Sierra · §3.5.5 Reference layers, §3.5.6.2 Split planes</span>
+    <span class="src">Sierra · §7.3.1.7 Signal return path</span>
+    <span class="src">Jones · High frequency design techniques</span>
+    <span class="src">ROHM · §2.6.2 Ground plane</span>
+  </div>
+</div>
+
+<h2 id="loops" data-short="3.1 Loops">3.1 Current always flows in loops</h2>
+<p>On a schematic you draw a wire from a driver to a receiver, and a ground symbol at each end. But charge cannot pile up anywhere, so every bit of current that flows out along the signal trace must flow <b>back</b> to the driver. The ground symbols hide the second half of the loop.</p>
+<svg class="viz" viewBox="0 0 640 170" style="background:var(--surface-2);max-width:640px">
+  <defs><marker id="arb" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#2e8bd6"/></marker>
+  <marker id="aro" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#e8612c"/></marker></defs>
+  <rect x="40" y="50" width="70" height="50" rx="6" fill="var(--surface)" stroke="var(--muted)"/>
+  <text x="75" y="80" text-anchor="middle" font-size="13" fill="var(--text)">driver</text>
+  <rect x="530" y="50" width="70" height="50" rx="6" fill="var(--surface)" stroke="var(--muted)"/>
+  <text x="565" y="80" text-anchor="middle" font-size="13" fill="var(--text)">receiver</text>
+  <line x1="110" y1="65" x2="530" y2="65" stroke="#2e8bd6" stroke-width="3" marker-end="url(#arb)"/>
+  <text x="320" y="55" text-anchor="middle" font-size="12" fill="var(--muted)">signal current — the part you draw</text>
+  <path d="M530 88 C 420 150, 220 150, 110 88" fill="none" stroke="#e8612c" stroke-width="3" stroke-dasharray="7 5" marker-end="url(#aro)"/>
+  <text x="320" y="150" text-anchor="middle" font-size="12" fill="var(--muted)">return current — through the ground plane. Where exactly? That's this lesson.</text>
+</svg>
+<p>The loop formed by the signal and its return has an <b>area</b>. Loop area sets the <b>inductance</b> (lesson 1), how strongly the loop <b>radiates</b> (it is a small loop antenna) and how strongly it <b>picks up</b> fields from neighbours. Small loop = good. A ground plane is useful because it lets the return current flow wherever it needs to in order to keep the loop small.</p>
+
+<h2 id="plane" data-short="3.2 Return on a plane">3.2 Where does the return current go on a plane?</h2>
+<p>Current takes the path of <b>least impedance</b>: Z = R + jωL. At low frequency, resistance dominates and the return current spreads out across the plane, taking the shortest, widest route between the two ground vias. At high frequency, inductance dominates and the lowest-inductance route is the one that makes the <b>loop smallest</b>: directly underneath the signal trace, whatever path the trace takes.</p>
+<p>Drag the two route handles, change the frequency, and move the slot around (drag it) to see this.</p>
+<div id="lab-plane"></div>
+<div class="callout rule"><div class="ct">Rule of thumb</div>
+<p>Never route a fast signal across a slot, split or void in its reference plane. If you can't avoid it, give the return current a bridge <b>right at the crossing</b>: a stitching capacitor (10–100&nbsp;nF) between the two planes, or a copper bridge if both sides are ground (Sierra §3.5.5). Routing <i>around</i> the gap is better still.</p></div>
+<div class="callout why"><div class="ct">Why the slot is so bad at high frequency</div>
+<p>The return current wants to be under the trace. When it reaches the slot it has to go around the end. That turns a loop with an area of "trace length × 0.2&nbsp;mm" into one that can be several cm². Three things get worse at once: the loop <b>radiates</b> (EMI scales with area × f²), the extra inductance is an <b>impedance bump</b> that reflects fast edges, and the detouring current flows under <b>other traces</b> nearby, causing crosstalk. Slots appear by accident far more often than by design: a row of vias with antipads that merge, a plane split for another rail, or a cut-out for a connector.</p></div>
+<div class="callout altium"><div class="ct">In Altium</div>
+<p>Check plane continuity under fast nets in the <b>Layer Stack Manager</b> / 2D view by showing only the reference plane layer (<kbd>Shift</kbd>+<kbd>S</kbd> single-layer mode). Recent Altium versions include a <b>Return Path</b> design rule (<b>Design » Rules » High Speed</b>) that flags signals whose reference plane has gaps underneath. For stitching across a split, place a capacitor footprint right at the crossing.</p></div>
+
+<h2 id="tight" data-short="3.3 How tight?">3.3 How tightly does the return hug the trace?</h2>
+<p>For a trace at height H above a plane, the high-frequency return current density across the plane follows a simple curve: <code>J(x) ∝ 1 / (1 + (x/H)²)</code>. Half the current flows within ±H of the centreline. Adjust H and a neighbouring trace to see how much of this trace's return current flows underneath the neighbour:</p>
+<div id="lab-tight"></div>
+<div class="callout why"><div class="ct">Connection to crosstalk</div>
+<p>The value of this curve under the neighbour, <code>1/(1+(D/H)²)</code>, is the same coupling coefficient Jones gives for crosstalk (lesson 1.3). Return currents that overlap means fields that overlap. That is why Sierra wants signal layers tightly coupled to their plane (&lt;10&nbsp;mil ≈ 0.25&nbsp;mm, §4.1.7). A thin dielectric shrinks every loop on the board.</p></div>
+
+<h2 id="layers" data-short="3.4 Changing layers">3.4 Changing layers: the return has to change layers too</h2>
+<p>When a signal goes through a via to another layer, its reference plane often changes too. The return current then has to get from one plane to the other, <i>near the via</i>. If the only connection between the planes is far away, the return current takes a detour (more loop area, more inductance) or crosses as displacement current through the plane-to-plane capacitance, which spreads noise across the whole board.</p>
+<div id="lab-layers"></div>
+<div class="callout rule"><div class="ct">Rule of thumb</div>
+<p>Whenever a fast signal changes layers between two <b>ground</b> references, put a <b>ground stitching via</b> right next to the signal via (within ~1&nbsp;mm; for diff pairs, place them symmetrically). If the new reference is a <b>power</b> plane, you need a <b>stitching capacitor</b> instead. Better still, plan the stackup so fast signals only ever reference ground (Sierra §3.5.5, §7.3.1.7).</p></div>
+<div class="callout altium"><div class="ct">In Altium</div>
+<p>Use <b>Tools » Via Stitching/Shielding » Add Shielding to Net</b> to drop ground vias along a net, or place them by hand next to each layer-change via. For differential pairs, the Interactive Differential Pair Router's via patterns can include return vias. The Layer Stack Manager shows which planes each signal layer references.</p></div>
+
+<h2 id="quiz" data-short="Check yourself">Check yourself</h2>
+<div id="quiz-box"></div>
+<div id="lesson-tail"></div>
+
+</div></main>
+</div>
+<script src="assets/core.js"></script>
+<script src="assets/lesson-03.js"></script>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Memory (DDR) Routing</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div id="topbar"></div>
+<div class="layout">
+<nav id="sidebar"></nav>
+<main><div class="content">
+
+<div class="kicker">Lesson 11 · High-speed signals</div>
+<h1>Memory (DDR) routing</h1>
+<p class="lede">A DDR memory bus is the densest timing problem on most boards: dozens of signals that must arrive within a few picoseconds of each other, at hundreds of megabits per second per pin, through a shared address bus that visits every chip. The rules look like a long list, but they all come from three ideas you already know: <b>groups that must arrive together</b> (lesson 8), <b>topology</b> (lesson 7.3) and a <b>timing budget</b>.</p>
+
+<div class="callout warnbox"><div class="ct">On a Jetson carrier board</div>
+<p>The LPDDR memory on a Jetson module sits <b>on the module</b>, so you will not route DDR on the carrier board. This lesson is here for completeness, as you asked. The same ideas apply directly to what you <i>will</i> route: PCIe and USB lanes, MIPI CSI clock/data lanes (matched to their clock lane, much like DQ to DQS), and any DDR you add for an FPGA or a second processor.</p></div>
+
+<div class="learn-box">
+  <div><h4>You'll learn</h4><ul>
+    <li>How a DDR bus is split into groups, and which group is matched to which</li>
+    <li>Why matching is done in <b>time</b>, not millimetres, and why a layer change upsets it</li>
+    <li>Why the address bus is a terminated <b>fly-by</b> chain, and how "write leveling" fixes the skew it creates</li>
+    <li>Where the timing budget goes as data rates rise</li>
+  </ul></div>
+  <div><h4>Sources</h4>
+    <span class="src">Sierra · §2.3.1 topologies, §7.3 routing</span>
+    <span class="src">Lesson 7.3 fly-by preview</span>
+    <span class="src">Lesson 8 skew and matching</span>
+    <p class="hint" style="margin:6px 0 0">Your PDFs only mention DDR in passing. The numbers here are generic illustrations. Real limits come from the memory controller's layout guide.</p>
+  </div>
+</div>
+
+<h2 id="groups" data-short="11.1 Signal groups">11.1 The bus is a set of groups</h2>
+<p>A 64-bit bus to four ×16 chips has about 130 signals, but they fall into just a few groups with different rules. <b>Data</b> is split into 8-bit <b>byte lanes</b>. Each lane has its own strobe pair (DQS) that travels with it, so a lane only has to match <i>itself</i>, point to point, to one chip. <b>Address, command and control</b> are shared by all the chips and are clocked by the differential clock (CK). They visit each chip in turn. Pick a group to see its route and its rule:</p>
+<div id="lab-groups"></div>
+
+<h2 id="lane" data-short="11.2 Byte-lane timing">11.2 Matching a byte lane: time, not length</h2>
+<p>The receiver samples each DQ bit on the DQS edge, which the controller places in the middle of the data eye. Every bit in the lane must therefore arrive within a small window around DQS. What matters is <b>flight time</b>. On an outer layer (microstrip) signals travel about 15% faster than on an inner layer (stripline), because part of the field is in air. Two traces of equal length on different layers are <i>not</i> matched. Drag the end of any trace to change its length, and click a signal's name to move it between layers:</p>
+<div id="lab-lane"></div>
+<div class="callout rule"><div class="ct">Rule of thumb</div>
+<p>Route a whole byte lane (DQ0–7, DM, DQS±) on the <b>same layer</b> with the <b>same number of vias</b>, then match lengths within the lane. Match in time (ps) whenever your tool allows it. Lanes do not need to match <i>each other</i> closely, because each lane has its own strobe. Bit swaps <i>inside</i> a lane are usually allowed, and so are whole-lane swaps: check the controller's rules, and use them to remove crossings before you start tuning lengths.</p></div>
+<div class="callout altium"><div class="ct">In Altium</div>
+<p>Make one net class per byte lane (e.g. <code>BYTE0</code> = DQ0–7, DM0, DQS0_P/N) and use a <b>Matched Lengths</b> rule on each class. Use xSignals (Design » xSignals) for paths that pass through series parts. Recent Altium versions can match in <b>propagation delay</b> instead of length once the Layer Stack Manager has impedance profiles; check that your version supports this, because it is what makes mixed-layer routes match correctly. Use <b>Interactive Length Tuning</b> (<kbd>T</kbd> <kbd>R</kbd>) to add accordions, keeping the amplitude and gap rules from lesson 8.</p></div>
+
+<h2 id="flyby" data-short="11.3 Fly-by address bus">11.3 The address bus: fly-by, termination and write leveling</h2>
+<p>Address and command lines go to every chip. Lesson 7.3 showed that a balanced tree (T-branch) rings because each branch is an unterminated stub for the others. DDR3 and later use a <b>fly-by</b> chain instead: one line passes each chip through a very short stub and ends in a termination to V<sub>TT</sub> (V<sub>DDQ</sub>/2). Each chip's input capacitance loads the line, so the loaded impedance is lower than the bare trace impedance, and the termination is chosen to match the <i>loaded</i> value. The cost of fly-by is that each chip sees the clock and address a little later than the one before. The controller measures this during start-up (<b>write leveling</b>) and delays each byte lane's DQS to match.</p>
+<div id="lab-flyby"></div>
+<div class="callout rule"><div class="ct">Rule of thumb</div>
+<p>Address/command/control: a fly-by daisy chain in the same order as the clock pair, stubs to each chip as short as possible (via straight down at the ball), termination resistors at the <b>end</b> of the chain with their V<sub>TT</sub> island decoupled right there. Match each address net to the clock <i>at every chip</i>, within the controller's limit. The flight-time difference between the first and last chip is allowed (write leveling absorbs it, up to its range); the difference between address and clock at the same chip is not.</p></div>
+
+<h2 id="budget" data-short="11.4 Timing budget">11.4 Where the timing budget goes</h2>
+<p>Every DDR guideline is a slice of one budget: the unit interval (UI, one bit time). The DRAM needs part of it as a valid window, the controller's jitter takes part, and the layout gets what is left: skew, crosstalk-induced jitter, reflections and reference (VREF) noise. As data rates rise, the UI shrinks but the layout's contributions don't, so the rules get tighter. Change the design choices and watch the margin:</p>
+<div id="lab-budget"></div>
+<div class="callout why"><div class="ct">Why rules "suddenly" get strict</div>
+<p>At DDR3-1066 the UI is 938&nbsp;ps, and a 25&nbsp;ps layout error is under 3% of it. At LPDDR5-6400 the UI is 156&nbsp;ps, and the same 25&nbsp;ps error is 16%. The physics didn't change; the budget did. That is why newer guidelines specify things that older ones ignored: same-layer routing, via-count matching, crosstalk spacing inside a lane, and reference-plane continuity.</p></div>
+
+<h2 id="quiz" data-short="Check yourself">Check yourself</h2>
+<div id="quiz-box"></div>
+<div id="lesson-tail"></div>
+
+</div></main>
+</div>
+<script src="assets/core.js"></script>
+<script src="assets/lesson-11.js"></script>
+</body>
+</html>

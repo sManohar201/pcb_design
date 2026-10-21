@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Carrier Board Placement</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div id="topbar"></div>
+<div class="layout">
+<nav id="sidebar"></nav>
+<main><div class="content">
+
+<div class="kicker">Lesson 12 · Placement & manufacturing</div>
+<h1>Placement for a carrier board</h1>
+<p class="lede">Jones quotes the old saying that PCB design is "90% placement and 10% routing". Every rule from the earlier lessons (short hot loops, unbroken return paths, few vias on fast pairs, quiet analog) is either made easy or made impossible by where the parts go. This lesson puts the parts of a module carrier board in your hands.</p>
+
+<div class="learn-box">
+  <div><h4>You'll learn</h4><ul>
+    <li>How to floorplan a carrier board around the module connector</li>
+    <li>Why connector orientation decides how many vias your fast pairs need</li>
+    <li>How lane reversal and polarity inversion can rescue a placement</li>
+    <li>Where hot parts go, and what heat does to capacitors and crystals</li>
+  </ul></div>
+  <div><h4>From your PDFs</h4>
+    <span class="src">Jones · Component Placement & Design</span>
+    <span class="src">Sierra · §7.2.1–7.2.2 floor planning</span>
+    <span class="src">Sierra · §7.2.2.2 edges, airflow</span>
+    <span class="src">Sierra · §7.2.4–7.2.10 orientation, isolation, surge parts</span>
+  </div>
+</div>
+
+<h2 id="floor" data-short="12.1 Floorplan">12.1 Floorplan around the module connector</h2>
+<p>On a carrier board the module connector is fixed first, because the module, heatsink and enclosure decide where it goes. Every interface leaves the connector from its own group of pins, so the connectors on the board edge should sit in the <b>same order</b> as those pin groups. Then their routes fan out without crossing. Sierra's floorplan advice (§7.2.2): group blocks by function, keep connections short and the signal flow one-directional, and don't let power circuits sit in the path of sensitive ones. Drag the blocks below; the ratsnest lines and meters update as you go.</p>
+<div id="lab-floor"></div>
+<div class="callout rule"><div class="ct">Rule of thumb</div>
+<p>Order of placement: (1) fixed mechanical parts (module connector, mounting holes, board-edge connectors the enclosure dictates); (2) edge connectors in the same order as the module's pin groups; (3) the power entry and regulators, close to where their current goes and away from analog and cable connectors; (4) ESD and common-mode parts right at each connector (Sierra §7.2.10); (5) everything else. Jones' rule: place and route each functional block on its own first, then move whole blocks into position.</p></div>
+<div class="callout altium"><div class="ct">In Altium</div>
+<p>Turn on <b>Rooms</b> generated from schematic sheets (Project Options » Class Generation) so each sheet's parts arrive grouped. Use <b>Tools » Component Placement » Arrange Within Room</b>, and <b>Cross Select Mode</b> (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd>) to pick parts on the schematic and find them on the board. Lock the module connector and mounting holes once they are in place.</p></div>
+
+<h2 id="pins" data-short="12.2 Orientation & pin order">12.2 Connector orientation and pin order</h2>
+<p>Below, a ×4 PCIe link leaves the module as four transmit pairs in order L0–L3. The M.2 connector has its own pin order, which depends on how you rotate it and on which side of the board it sits. If the two orders disagree, the ratsnest crosses, and every crossing becomes a layer change: vias, stubs and skew on your fastest signals. Two link features can fix the order logically instead: <b>lane reversal</b> (the controller accepts L0–L3 in reverse) and <b>polarity inversion</b> (the receiver accepts P and N swapped).</p>
+<div id="lab-pins"></div>
+<div class="callout rule"><div class="ct">Rule of thumb</div>
+<p>Before placing a connector, line up its pin order with the source and check the crossings in the ratsnest. Prefer fixing order by <b>rotation or side</b>. Otherwise use lane reversal or polarity inversion <b>only if the module's design guide says that interface supports it</b>. PCIe receivers must handle polarity inversion; lane reversal is optional. Make the change in the schematic and push it to the PCB, so the two never disagree.</p></div>
+
+<h2 id="thermal" data-short="12.3 Thermal placement">12.3 Thermal placement</h2>
+<p>Regulators, LDOs and SSDs turn power into heat. Heat matters to two kinds of part in particular. An <b>electrolytic capacitor</b>'s life halves for every 10&nbsp;°C rise. A 32&nbsp;kHz RTC <b>crystal</b> drifts as the square of its distance from 25&nbsp;°C. Sierra also warns not to place tall parts in the airflow path of hot ones (§7.2.2.2). Drag the parts and change the copper and airflow:</p>
+<div id="lab-heat"></div>
+<div class="callout rule"><div class="ct">Rule of thumb</div>
+<p>Spread the heat sources out; never stack them. Put temperature-sensitive parts (electrolytics, crystals, temperature sensors, precision references) <b>upstream</b> of the airflow and away from regulators. Use solid planes and thermal vias under hot pads so the board itself spreads the heat. Don't let tall connectors or cables block the air to the hottest part.</p></div>
+
+<div class="callout read"><div class="ct">Assembly-friendly placement (Jones · Sierra §7.2.4–7.2.5)</div>
+<p>Orient similar parts the same way (all polarised capacitors and diodes pointing the same direction) so assembly and inspection errors drop. Keep surface-mount parts on one side if you can, since each extra side is another reflow pass, and put through-hole parts on the top. Leave room for washers and screw heads at mounting holes (Jones), and keep parts clear of the board edge and any V-score line.</p></div>
+
+<h2 id="quiz" data-short="Check yourself">Check yourself</h2>
+<div id="quiz-box"></div>
+<div id="lesson-tail"></div>
+
+</div></main>
+</div>
+<script src="assets/core.js"></script>
+<script src="assets/lesson-12.js"></script>
+</body>
+</html>
